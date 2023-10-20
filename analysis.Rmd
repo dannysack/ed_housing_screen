@@ -1,0 +1,1234 @@
+---
+title: "ED Quantitative Analysis"
+author: "Danny Sack"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    code_folding: hide
+    lightbox: true
+    code_download: true
+---
+
+```{r setup, include=FALSE}
+# load packages
+library(tidyverse)
+library(ggpubr)
+library(extrafont)
+library(Hmisc)
+library(gtsummary)
+library(ggdist)
+library(gghalves)
+library(sdamr)
+library(rnoaa)
+library(scales)
+loadfonts()
+knitrSet(lang='markdown', fig.path='png/', fig.align='center', w=9, h=8, cache=TRUE)
+options(knitr.kable.NA = '')
+options(noaakey = "dGFZnaNPcYqMsRIhDhEMxzSCgvmWmZqr")
+```
+
+```{r import_data}
+# start by setting a seed
+Load(data)
+
+# create theme for plots
+theme1 <- theme_pubr() +
+  theme(text = element_text(family = "Arial"),
+        axis.text.x = element_text(angle = 90),
+        legend.position = "bottom")
+```
+
+# Table 1
+
+```{r gen_tab1}
+tbl_summary(data %>% mutate(vis_num = as.numeric(vis_num),
+                            vis_hour = as.numeric(vis_hour),
+                            time_to_room = as.numeric(time_to_room)/60, # to make it minutes
+                            time_to_md = as.numeric(time_to_md)/60, # to make it minutes
+                            priorEdVisits = as.numeric(priorEdVisits),
+                            priorAdmits = as.numeric(priorAdmits),
+                            avg_prior_hosp_los = as.numeric(avg_prior_hosp_los)) %>%
+              select(age_yr, age_cat, sex, lang_cat, race, eth_cat, insurance_cat,
+                     meansOfArrival, hospDispoCat, edDispoCat, cc_cat, ed_dx_cat,
+                     pastQuestion:screenedQuestion, psychHist, 
+                     acuity_level_c, vis_num, vis_month:time_to_ed_dc, priorEdVisits:avg_prior_hosp_los),
+            by = housing_cat)
+```
+
+## Table 1 at participants' first visit
+
+
+```{r gen_tab1_ind}
+print("Table 1, but only including the first registered visit in the study period")
+tbl_summary(data %>% mutate(vis_num = as.numeric(vis_num),
+                            vis_hour = as.numeric(vis_hour),
+                            time_to_room = as.numeric(time_to_room)/60, # to make it minutes
+                            time_to_md = as.numeric(time_to_md)/60, # to make it minutes
+                            priorEdVisits = as.numeric(priorEdVisits),
+                            priorAdmits = as.numeric(priorAdmits),
+                            avg_prior_hosp_los = as.numeric(avg_prior_hosp_los)) %>%
+              select(age_yr, age_cat, sex, lang_cat, race, eth_cat, insurance_cat,
+                     meansOfArrival, hospDispoCat, edDispoCat, cc_cat, ed_dx_cat,
+                     pastQuestion:screenedQuestion, psychHist, 
+                     acuity_level_c, vis_num, vis_month:time_to_ed_dc, priorEdVisits:avg_prior_hosp_los) %>%
+              filter(vis_num == 1),
+            by = housing_cat)
+```
+
+# Visits During the Study Period
+
+```{r ed_visits}
+ggplot(data, aes(x = as.numeric(vis_num), y = housing_cat)) +
+  stat_halfeye(trim = TRUE) +
+  geom_point(size = 0.5, alpha = 0.25, position = position_jitternudge(jitter.width = 0.1, jitter.height = 0.35, nudge.x = -0.05)) +
+  ggtitle("ED Visits from Jan 1-May 16, 2023") +
+  ylab("Housing Status") +
+  xlab("Visits") +
+  theme1
+```
+
+# Time to Room
+
+```{r room_time}
+ggplot(data, aes(x = as.numeric(time_to_room)/60, y = housing_cat)) +
+  stat_halfeye(trim = TRUE) +
+  geom_point(size = 0.5, alpha = 0.25, position = position_jitternudge(jitter.width = 0.1, jitter.height = 0.35, nudge.x = -0.1)) +
+  coord_cartesian(xlim = c(0, 20)) +
+  ggtitle("Minutes to room") +
+  ylab("Housing Status") +
+  xlab("Minutes") +
+  theme1
+```
+
+# Time to Provider
+
+```{r md_time}
+ggplot(data, aes(x = as.numeric(time_to_md)/60, y = housing_cat)) +
+  stat_halfeye(trim = TRUE) +
+  geom_point(size = 0.5, alpha = 0.25, position = position_jitternudge(jitter.width = 0.1, jitter.height = 0.35, nudge.x = -0.1)) +
+  coord_cartesian(xlim = c(0, 480)) +
+  ggtitle("Time Until Provider Assigned") +
+  ylab("Housing Status") +
+  xlab("Minutes") +
+  theme1
+
+# wilcoxin p-values
+
+# housing v. unstable 
+wilcox.test(data %>% filter(housing_cat == "Stable Housing") %>% pull(time_to_md),
+            data %>% filter(housing_cat == "Unstable Housing") %>% pull(time_to_md))
+
+# housing v. houseless
+wilcox.test(data %>% filter(housing_cat == "Stable Housing") %>% pull(time_to_md),
+            data %>% filter(housing_cat == "Homeless") %>% pull(time_to_md))
+
+# unstable v. houseless
+wilcox.test(data %>% filter(housing_cat == "Unstable Housing") %>% pull(time_to_md),
+            data %>% filter(housing_cat == "Homeless") %>% pull(time_to_md))
+```
+
+# Time to ED Dispo
+
+```{r ed_dispo_time}
+ggplot(data, aes(x = as.numeric(time_to_ed_dc)/60, y = housing_cat)) +
+  stat_halfeye(trim = TRUE) +
+  geom_point(size = 0.5, alpha = 0.25, position = position_jitternudge(jitter.width = 0.1, jitter.height = 0.35, nudge.x = -0.1)) +
+  coord_cartesian(xlim = c(0, 100)) +
+  ggtitle("Time Until ED Disposition Plan") +
+  ylab("Housing Status") +
+  xlab("Minutes") +
+  theme1
+
+# wilcoxin p-values
+
+# housing v. unstable 
+wilcox.test(data %>% filter(housing_cat == "Stable Housing") %>% pull(time_to_ed_dc),
+            data %>% filter(housing_cat == "Unstable Housing") %>% pull(time_to_ed_dc))
+
+# housing v. houseless
+wilcox.test(data %>% filter(housing_cat == "Stable Housing") %>% pull(time_to_ed_dc),
+            data %>% filter(housing_cat == "Homeless") %>% pull(time_to_ed_dc))
+
+# unstable v. houseless
+wilcox.test(data %>% filter(housing_cat == "Unstable Housing") %>% pull(time_to_ed_dc),
+            data %>% filter(housing_cat == "Homeless") %>% pull(time_to_ed_dc))
+```
+
+# Time to Hosp d/c
+
+```{r hospdc_time}
+ggplot(data, aes(x = as.numeric(time_to_hosp_dc)/60, y = housing_cat)) +
+  stat_halfeye(trim = TRUE) +
+  geom_point(size = 0.5, alpha = 0.25, position = position_jitternudge(jitter.width = 0.1, jitter.height = 0.35, nudge.x = -0.1)) +
+  coord_cartesian(xlim = c(0, 480)) +
+  ggtitle("Time Until Discharge") +
+  ylab("Housing Status") +
+  xlab("Minutes") +
+  theme1
+```
+
+# Triage Score
+
+```{r triage}
+ggplot(data, aes(x = acuity_level_c, y = housing_cat)) +
+  stat_halfeye(trim = TRUE) +
+  geom_point(size = 0.5, alpha = 0.25, position = position_jitternudge(jitter.width = 0.1, jitter.height = 0.35, nudge.x = -0.05)) +
+  ggtitle("Triage Score") +
+  ylab("Housing Status") +
+  xlab("Score") +
+  theme1
+```
+
+# Age
+
+```{r age}
+ggplot(data, aes(x = age_yr, y = housing_cat)) +
+  stat_halfeye(trim = TRUE) +
+  geom_point(size = 0.5, alpha = 0.25, position = position_jitternudge(jitter.width = 0.1, jitter.height = 0.35, nudge.x = -0.05)) +
+  ggtitle("Age") +
+  ylab("Housing Status") +
+  xlab("Year") +
+  theme1
+```
+
+# Covariates by Month Graphs (all)
+
+## Age
+
+```{r age_cat}
+age_fig <- ggplot(data, aes(x = vis_month)) +
+  geom_bar(aes(fill = age_cat), position = position_fill()) +
+  facet_grid(rows = ~housing_cat) +
+  ggtitle("A) Age") +
+  xlab("") +
+  scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
+  scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
+  guides(fill = guide_legend(nrow = 2)) +
+  theme1
+
+## WITH PERCENTAGES
+# data %>%
+#   select(housing_cat, vis_month, age_cat) %>%
+#   group_by(housing_cat, vis_month, age_cat) %>%
+#   summarise(n = n()) %>%
+#   group_by(housing_cat, vis_month) %>%
+#   mutate(tot = sum(n)) %>%
+#   ungroup() %>%
+#   mutate(prop = n/tot) %>%
+#   ggplot(aes(x = vis_month, y = prop, fill = age_cat)) +
+#   geom_col() +
+#   geom_text(aes(label = percent(accuracy = 1, ifelse(prop > 0.0499, prop, NA))),
+#             position = position_fill(vjust = 0.5),
+#             size = 2.25) +
+#   facet_grid(rows = ~housing_cat) +
+#   ggtitle("A) Age") +
+#   xlab("") +
+#   scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
+#   scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
+#   guides(fill = guide_legend(nrow = 2)) +
+#   theme1
+```
+
+## Sex
+
+```{r sex_graph}
+sex_fig <- ggplot(data, aes(x = vis_month)) +
+  geom_bar(aes(fill = sex), position = position_fill()) +
+  facet_grid(rows = ~housing_cat) +
+  ggtitle("B) Sex") +
+  xlab("") +
+  scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
+  scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
+  guides(fill = guide_legend(nrow = 2)) +
+  theme1
+```
+
+
+## Language
+
+```{r lang_graph}
+lang_fig <- ggplot(data, aes(x = vis_month)) +
+  geom_bar(aes(fill = lang_cat), position = position_fill()) +
+  facet_grid(rows = ~housing_cat) +
+  ggtitle("C) Language") +
+  xlab("") +
+  scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
+  scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
+  guides(fill = guide_legend(nrow = 2)) +
+  theme1
+```
+
+## Race
+
+```{r race_graph}
+race_fig <- ggplot(data, aes(x = vis_month)) +
+  geom_bar(aes(fill = race), position = position_fill()) +
+  facet_grid(rows = ~housing_cat) +
+  ggtitle("D) Race") +
+  xlab("") +
+  scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
+  scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
+  guides(fill = guide_legend(nrow = 5)) +
+  theme1
+```
+
+## Ethnicity
+
+```{r ethnicity_graph}
+eth_fig <- ggplot(data, aes(x = vis_month)) +
+  geom_bar(aes(fill = eth_cat), position = position_fill()) +
+  facet_grid(rows = ~housing_cat) +
+  ggtitle("E) Ethnicity") +
+  xlab("") +
+  scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
+  scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
+  guides(fill = guide_legend(nrow = 5)) +
+  theme1
+```
+
+## Insurance
+```{r insurance_graph}
+ins_fig <- ggplot(data, aes(x = vis_month)) +
+  geom_bar(aes(fill = insurance_cat), position = position_fill()) +
+  facet_grid(rows = ~housing_cat) +
+  ggtitle("F) Insurance") +
+  xlab("") +
+  scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
+  scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
+  guides(fill = guide_legend(nrow = 5)) +
+  theme1
+```
+
+### Figure 1 - Demographics
+
+```{r fig1_demo, fig.height=15, fig.width=18}
+# quartz(type = "pdf", file = "pdfs/insurance.pdf", height = 8, w = 10)
+ggarrange(age_fig, sex_fig, lang_fig, race_fig, eth_fig, ins_fig)
+# dev.off()
+# # embed the font
+# embed_fonts("pdfs/insurance.pdf")
+```
+
+## Arrival Method
+
+```{r arrival_graph}
+ar_fig <- ggplot(data, aes(x = vis_month)) +
+  geom_bar(aes(fill = meansOfArrival), position = position_fill()) +
+  facet_grid(rows = ~housing_cat) +
+  ggtitle("A) Arrival Method") +
+  xlab("") +
+  scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
+  scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
+  guides(fill = guide_legend(nrow = 6)) +
+  theme1
+```
+
+## ED Disposition
+
+```{r eddispo_graph}
+eddc_fig <- ggplot(data, aes(x = vis_month)) +
+  geom_bar(aes(fill = edDispoCat), position = position_fill()) +
+  facet_grid(rows = ~housing_cat) +
+  ggtitle("B) ED Disposition") +
+  xlab("") +
+  scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
+  scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
+  guides(fill = guide_legend(nrow = 6)) +
+  theme1
+```
+
+## Hospital Discharge
+
+```{r hospdc_graph}
+hospdc_fig <- ggplot(data, aes(x = vis_month)) +
+  geom_bar(aes(fill = hospDispoCat), position = position_fill()) +
+  facet_grid(rows = ~housing_cat) +
+  ggtitle("C) Hospital Discharge Location") +
+  xlab("") +
+  scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
+  scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
+  guides(fill = guide_legend(nrow = 6)) +
+  theme1
+```
+
+## Acuity Level
+
+```{r acuity_graph}
+triage_fig <- ggplot(data, aes(x = vis_month)) +
+  geom_bar(aes(fill = factor(acuity_level_c)), position = position_fill()) +
+  facet_grid(rows = ~housing_cat) +
+  ggtitle("D) Intake Triage Scores") +
+  xlab("") +
+  scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
+  scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
+  guides(fill = guide_legend(nrow = 6)) +
+  theme1
+```
+
+## Chief Complaint
+
+```{r cc_graph}
+cc_fig <- ggplot(data, aes(x = vis_month)) +
+  geom_bar(aes(fill = cc_cat), position = position_fill()) +
+  facet_grid(rows = ~housing_cat) +
+  ggtitle("E) Chief Complaint Category") +
+  xlab("") +
+  scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
+  scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
+  guides(fill = guide_legend(nrow = 6)) +
+  theme1
+```
+
+## ED Primary Diagnosis
+
+```{r pdx_graph}
+eddx_fig <- ggplot(data, aes(x = vis_month)) +
+  geom_bar(aes(fill = ed_dx_cat), position = position_fill()) +
+  facet_grid(rows = ~housing_cat) +
+  ggtitle("F) Primary ED Discharge Diagnosis") +
+  xlab("") +
+  scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
+  scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
+  guides(fill = guide_legend(nrow = 6)) +
+  theme1
+```
+
+
+### Figure 2 - Clinical
+
+```{r fig2_clin, fig.height=15, fig.width=18}
+# quartz(type = "pdf", file = "pdfs/insurance.pdf", height = 8, w = 10)
+ggarrange(ar_fig, eddc_fig, hospdc_fig, triage_fig, cc_fig, eddx_fig)
+# dev.off()
+# # embed the font
+# embed_fonts("pdfs/insurance.pdf")
+```
+
+# Covariates by Month (high utilizers)
+
+```{r high_ut_data}
+hu_data <- data %>% 
+  group_by(id) %>%
+  mutate(tot_vis = max(vis_num),
+         tot_vis_fac = factor(ifelse(tot_vis > 4, "5+", tot_vis), levels = c("1", "2", "3", "4", "5+"))) %>%
+  ungroup() %>%
+  filter(tot_vis > 2)
+```
+
+## Table 2
+
+```{r gen_tab2}
+tbl_summary(hu_data %>% mutate(vis_num = as.numeric(vis_num),
+                            vis_hour = as.numeric(vis_hour),
+                            time_to_room = as.numeric(time_to_room)/60, # to make it minutes
+                            time_to_md = as.numeric(time_to_md)/60, # to make it minutes
+                            priorEdVisits = as.numeric(priorEdVisits),
+                            priorAdmits = as.numeric(priorAdmits),
+                            avg_prior_hosp_los = as.numeric(avg_prior_hosp_los)) %>%
+              select(age_yr, age_cat, sex, lang_cat, race, eth_cat, insurance_cat,
+                     meansOfArrival, hospDispoCat, edDispoCat, cc_cat, ed_dx_cat,
+                     pastQuestion:screenedQuestion, psychHist, 
+                     acuity_level_c, vis_num, vis_month:time_to_ed_dc, priorEdVisits:avg_prior_hosp_los),
+            by = housing_cat)
+```
+
+## Visits per patient
+
+```{r vis_per_pt}
+print("total visits by visits")
+data %>% select(id, vis_num, housing_screen) %>%
+  group_by(id) %>%
+  mutate(tot_vis = max(vis_num),
+         tot_vis_fac = factor(ifelse(tot_vis > 4, "5+", tot_vis), levels = c("1", "2", "3", "4", "5+"))) %>%
+  ungroup() %>%
+  select(housing_screen, tot_vis_fac) %>%
+  tbl_summary(by = housing_screen)
+
+print("total visits by people")
+data %>% select(id, vis_num, housing_screen) %>%
+  group_by(id) %>%
+  mutate(tot_vis = max(vis_num),
+         tot_vis_fac = factor(ifelse(tot_vis > 4, "5+", tot_vis), levels = c("1", "2", "3", "4", "5+"))) %>%
+  ungroup() %>%
+  distinct(., id, .keep_all = TRUE) %>%
+  select(housing_screen, tot_vis_fac) %>%
+  tbl_summary(by = housing_screen)
+
+# graph of total visits per person
+high_patients <- data %>% 
+  group_by(id) %>%
+  mutate(Encounters = max(vis_num),
+        Visits = factor(ifelse(Encounters > 4, "5+", Encounters), levels = c("1", "2", "3", "4", "5+"))) %>%
+  ungroup() %>%
+  select(id, housing_screen, Encounters, Visits) %>%
+  distinct(., id, .keep_all = TRUE)
+
+high_encounters <- data %>% 
+  group_by(id) %>%
+  mutate(Encounters = max(vis_num),
+        Visits = factor(ifelse(Encounters > 4, "5+", Encounters), levels = c("1", "2", "3", "4", "5+"))) %>%
+  ungroup() %>%
+  select(id, housing_screen, Encounters, Visits)
+
+# graph of patients by housing screen
+tot_pts_use <- high_patients %>% 
+  select(housing_screen, Visits) %>%
+  filter(housing_screen != "Missing") %>%
+  group_by(housing_screen, Visits) %>%
+  summarise(visits = n()) %>%
+  group_by(housing_screen) %>%
+  mutate(tot = sum(visits)) %>%
+  ungroup() %>%
+  mutate(prop = visits/tot) %>%
+  ggplot(aes(x = housing_screen, y = prop, fill = Visits)) +
+  geom_col() +
+  geom_text(aes(label = percent(accuracy = 0.1, ifelse(prop > 0.0499, prop, NA))),
+            position = position_fill(vjust = 0.5)) +
+  labs(title = "A) All VUMC ED Patients", subtitle = "") +
+  xlab("Experiencing Homelessness") +
+  scale_y_continuous(name = "Percentage", labels = label_percent()) +
+  scale_fill_brewer(type = "qual", palette = "Paired") +
+  guides(fill = guide_legend(nrow = 2)) +
+  theme1
+
+tot_encounters_use <- high_encounters %>% 
+  select(housing_screen, Visits) %>%
+  filter(housing_screen != "Missing") %>%
+  group_by(housing_screen, Visits) %>%
+  summarise(visits = n()) %>%
+  group_by(housing_screen) %>%
+  mutate(tot = sum(visits)) %>%
+  ungroup() %>%
+  mutate(prop = visits/tot) %>%
+  ggplot(aes(x = housing_screen, y = prop, fill = Visits)) +
+  geom_col() +
+  geom_text(aes(label = percent(accuracy = 0.1, ifelse(prop > 0.0499, prop, NA))),
+            position = position_fill(vjust = 0.5)) +
+  labs(title = "B) All VUMC ED Encounters", subtitle = "") +
+  xlab("Experiencing Homelessness") +
+  scale_y_continuous(name = "", labels = label_percent()) +
+  scale_fill_brewer(type = "qual", palette = "Paired") +
+  guides(fill = guide_legend(nrow = 2)) +
+  theme1
+```
+
+## Repeat ED Visits
+
+```{r repeat_visits}
+# create timeline for time between visits
+repeat_vis <- data %>% 
+  group_by(id) %>%
+  mutate(tot_vis = max(vis_num),
+         tot_vis_fac = factor(ifelse(tot_vis > 4, "5+", tot_vis), levels = c("1", "2", "3", "4", "5+"))) %>%
+  ungroup() %>%
+  select(id, housing_screen, vis_num, tot_vis, 
+         tot_vis_fac, vis_date) %>%
+  filter(tot_vis > 1) %>% 
+  group_by(id) %>%
+  mutate(last_vis_date = lag(vis_date)) %>%
+  ungroup() %>%
+  mutate(days_bt_vis = difftime(vis_date, last_vis_date, units = "days"),
+         bt_vis_cat = ifelse(as.numeric(days_bt_vis) > 30, "30+ days", NA),
+         bt_vis_cat = ifelse(as.numeric(days_bt_vis) < 31, "30  or fewer days", bt_vis_cat),
+         bt_vis_cat = ifelse(as.numeric(days_bt_vis) < 15, "14  or fewer days", bt_vis_cat),
+         bt_vis_cat = ifelse(as.numeric(days_bt_vis) < 8, "7  or fewer days", bt_vis_cat),
+         bt_vis_cat = ifelse(as.numeric(days_bt_vis) < 6, "5  or fewer days", bt_vis_cat),
+         bt_vis_cat = ifelse(as.numeric(days_bt_vis) < 4, "3 or fewer days", bt_vis_cat),
+         bt_vis_cat = ifelse(as.numeric(days_bt_vis) < 1, "<1 day", bt_vis_cat),
+         bt_vis_cat = factor(bt_vis_cat, levels = c("<1 day", "3  or fewer days", 
+                                                    "5  or fewer days", "7  or fewer days", 
+                                                    "14  or fewer days", "30  or fewer days", 
+                                                    "30+ days")))
+
+# plot it
+ggplot(repeat_vis, aes(x = as.numeric(days_bt_vis), y = housing_screen)) +
+  stat_halfeye(trim = TRUE) +
+  geom_point(size = 0.5, alpha = 0.25, position = position_jitternudge(jitter.width = 0.1, jitter.height = 0.35, nudge.x = -0.05)) +
+  ggtitle("Time Between Consecutive Visits") +
+  ylab("Experiencing Homelessness") +
+  xlab("Days") +
+  theme1
+
+# only includes second visit and beyond
+repvis_fig <- repeat_vis %>% 
+  filter(!is.na(bt_vis_cat)) %>%
+  select(housing_screen, bt_vis_cat) %>%
+  filter(housing_screen != "Missing") %>%
+  group_by(housing_screen, bt_vis_cat) %>%
+  summarise(people = n()) %>%
+  group_by(housing_screen) %>%
+  mutate(tot = sum(people)) %>%
+  ungroup() %>%
+  mutate(prop = people/tot) %>%
+  ggplot(aes(x = housing_screen, y = prop, fill = fct_rev(bt_vis_cat))) +
+  geom_col() +
+  geom_text(aes(label = percent(accuracy = 0.1, ifelse(prop > 0.0499, prop, NA))),
+            position = position_fill(vjust = 0.5)) +
+  labs(title = "C) Next ED Visit", subtitle = "Among participants with 1+ ED visits") +
+  xlab("Experiencing Homelessness") +
+  scale_y_continuous(name = "", labels = label_percent()) +
+  scale_fill_brewer(name = "Time", type = "qual", palette = "Paired", na.value = "grey") +
+  guides(fill = guide_legend(nrow = 2)) +
+  theme1
+```
+## Repeat ED Visits After Admission - TBD
+
+```{r rep_visits_admission}
+# create timeline for time between visits
+post_admit_vis <- data %>% 
+  group_by(id) %>%
+  mutate(tot_vis = max(vis_num),
+         tot_vis_fac = factor(ifelse(tot_vis > 4, "5+", tot_vis), levels = c("1", "2", "3", "4", "5+"))) %>%
+  ungroup() %>%
+  select(id, housing_screen, edDispoCat, vis_num, tot_vis, 
+         tot_vis_fac, vis_date) %>%
+  filter(tot_vis > 1) %>% 
+  group_by(id) %>%
+  mutate(last_vis_date = lag(vis_date),
+         last_dispo = lag(edDispoCat)) %>%
+  ungroup() %>%
+  filter(last_dispo == "Admit") %>%
+  mutate(days_bt_vis = difftime(vis_date, last_vis_date, units = "days"),
+         bt_vis_cat = ifelse(as.numeric(days_bt_vis) > 30, "30+ days", NA),
+         bt_vis_cat = ifelse(as.numeric(days_bt_vis) < 31, "30  or fewer days", bt_vis_cat),
+         bt_vis_cat = ifelse(as.numeric(days_bt_vis) < 15, "14  or fewer days", bt_vis_cat),
+         bt_vis_cat = ifelse(as.numeric(days_bt_vis) < 8, "7  or fewer days", bt_vis_cat),
+         bt_vis_cat = ifelse(as.numeric(days_bt_vis) < 1, "<1 day", bt_vis_cat),
+         bt_vis_cat = factor(bt_vis_cat, levels = c("<1 day", "7  or fewer days", 
+                                                    "14  or fewer days", "30  or fewer days", 
+                                                    "30+ days")))
+
+# plot it
+ggplot(post_admit_vis, aes(x = as.numeric(days_bt_vis), y = housing_screen)) +
+  stat_halfeye(trim = TRUE) +
+  geom_point(size = 0.5, alpha = 0.25, position = position_jitternudge(jitter.width = 0.1, jitter.height = 0.35, nudge.x = -0.05)) +
+  ggtitle("Time Between Admission and Next ED Visit") +
+  ylab("Experiencing Homelessness") +
+  xlab("Days") +
+  theme1
+
+# only includes second visit and beyond
+repvisadm_fig <- post_admit_vis %>% 
+  filter(!is.na(bt_vis_cat)) %>%
+  select(housing_screen, bt_vis_cat) %>%
+  filter(housing_screen != "Missing") %>%
+  group_by(housing_screen, bt_vis_cat) %>%
+  summarise(people = n()) %>%
+  group_by(housing_screen) %>%
+  mutate(tot = sum(people)) %>%
+  ungroup() %>%
+  mutate(prop = people/tot) %>%
+  ggplot(aes(x = housing_screen, y = prop, fill = fct_rev(bt_vis_cat))) +
+  geom_col() +
+  geom_text(aes(label = percent(accuracy = 0.1, ifelse(prop > 0.0499, prop, NA))),
+            position = position_fill(vjust = 0.5)) +
+  labs(title = "D) Next ED Visit After Admission", subtitle = "Among participants with 1+ ED visits") +
+  xlab("Experiencing Homelessness") +
+  scale_y_continuous(name = "", labels = label_percent()) +
+  scale_fill_brewer(name = "Time", type = "qual", palette = "Paired", na.value = "grey") +
+  guides(fill = guide_legend(nrow = 2)) +
+  theme1
+```
+
+## Figure 3 - ED Utilization Characteristics
+
+```{r fig3, fig.height=10, fig.width=8}
+top <- ggarrange(tot_pts_use, tot_encounters_use, nrow = 1, common.legend = TRUE, legend = "bottom")
+bot <- ggarrange(repvis_fig, repvisadm_fig, nrow = 1, common.legend = TRUE, legend = "bottom")
+# quartz(type = "pdf", file = "pdfs/fig1.pdf", height = 10, w = 8)
+ggarrange(top, bot, nrow = 2)
+# dev.off()
+# # embed the font
+# embed_fonts("pdfs/fig1.pdf")
+```
+
+## Age
+
+```{r hu_age_cat}
+hu_age_fig <- ggplot(hu_data, aes(x = vis_month)) +
+  geom_bar(aes(fill = age_cat), position = position_fill()) +
+  facet_grid(rows = ~housing_cat) +
+  ggtitle("A) Age") +
+  xlab("") +
+  scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
+  scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
+  guides(fill = guide_legend(nrow = 2)) +
+  theme1
+```
+
+## Sex
+
+```{r hu_sex_graph}
+hu_sex_fig <- ggplot(hu_data, aes(x = vis_month)) +
+  geom_bar(aes(fill = sex), position = position_fill()) +
+  facet_grid(rows = ~housing_cat) +
+  ggtitle("B) Sex") +
+  xlab("") +
+  scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
+  scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
+  guides(fill = guide_legend(nrow = 2)) +
+  theme1
+```
+
+
+## Language
+
+```{r hu_lang_graph}
+hu_lang_fig <- ggplot(hu_data, aes(x = vis_month)) +
+  geom_bar(aes(fill = lang_cat), position = position_fill()) +
+  facet_grid(rows = ~housing_cat) +
+  ggtitle("C) Language") +
+  xlab("") +
+  scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
+  scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
+  guides(fill = guide_legend(nrow = 2)) +
+  theme1
+```
+
+## Race
+
+```{r hu_race_graph}
+hu_race_fig <- ggplot(hu_data, aes(x = vis_month)) +
+  geom_bar(aes(fill = race), position = position_fill()) +
+  facet_grid(rows = ~housing_cat) +
+  ggtitle("D) Race") +
+  xlab("") +
+  scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
+  scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
+  guides(fill = guide_legend(nrow = 5)) +
+  theme1
+```
+
+## Ethnicity
+
+```{r hu_ethnicity_graph}
+hu_eth_fig <- ggplot(hu_data, aes(x = vis_month)) +
+  geom_bar(aes(fill = eth_cat), position = position_fill()) +
+  facet_grid(rows = ~housing_cat) +
+  ggtitle("E) Ethnicity") +
+  xlab("") +
+  scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
+  scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
+  guides(fill = guide_legend(nrow = 5)) +
+  theme1
+```
+
+## Insurance
+```{r hu_insurance_graph}
+hu_ins_fig <- ggplot(hu_data, aes(x = vis_month)) +
+  geom_bar(aes(fill = insurance_cat), position = position_fill()) +
+  facet_grid(rows = ~housing_cat) +
+  ggtitle("F) Insurance") +
+  xlab("") +
+  scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
+  scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
+  guides(fill = guide_legend(nrow = 5)) +
+  theme1
+```
+
+### Supplemental Figure 1 - Demographics
+
+```{r supfig1_demo, fig.height=10, fig.width=12}
+# quartz(type = "pdf", file = "pdfs/insurance.pdf", height = 8, w = 10)
+ggarrange(hu_age_fig, hu_sex_fig, hu_lang_fig, hu_race_fig, hu_eth_fig, hu_ins_fig)
+# dev.off()
+# # embed the font
+# embed_fonts("pdfs/insurance.pdf")
+```
+
+## Arrival Method
+
+```{r hu_arrival_graph}
+hu_ar_fig <- ggplot(hu_data, aes(x = vis_month)) +
+  geom_bar(aes(fill = meansOfArrival), position = position_fill()) +
+  facet_grid(rows = ~housing_cat) +
+  ggtitle("A) Arrival Method") +
+  xlab("") +
+  scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
+  scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
+  guides(fill = guide_legend(nrow = 6)) +
+  theme1
+```
+
+## ED Disposition
+
+```{r hu_eddispo_graph}
+hu_eddc_fig <- ggplot(hu_data, aes(x = vis_month)) +
+  geom_bar(aes(fill = edDispoCat), position = position_fill()) +
+  facet_grid(rows = ~housing_cat) +
+  ggtitle("B) ED Disposition") +
+  xlab("") +
+  scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
+  scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
+  guides(fill = guide_legend(nrow = 6)) +
+  theme1
+```
+
+## Hospital Discharge
+
+```{r hu_hospdc_graph}
+hu_hospdc_fig <- ggplot(hu_data, aes(x = vis_month)) +
+  geom_bar(aes(fill = hospDispoCat), position = position_fill()) +
+  facet_grid(rows = ~housing_cat) +
+  ggtitle("C) Hospital Discharge Location") +
+  xlab("") +
+  scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
+  scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
+  guides(fill = guide_legend(nrow = 6)) +
+  theme1
+```
+
+## Acuity Level
+
+```{r hu_acuity_graph}
+hu_triage_fig <- ggplot(hu_data, aes(x = vis_month)) +
+  geom_bar(aes(fill = factor(acuity_level_c)), position = position_fill()) +
+  facet_grid(rows = ~housing_cat) +
+  ggtitle("D) Intake Triage Scores") +
+  xlab("") +
+  scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
+  scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
+  guides(fill = guide_legend(nrow = 6)) +
+  theme1
+```
+
+## Chief Complaint
+
+```{r hu_cc_graph}
+hu_cc_fig <- ggplot(hu_data, aes(x = vis_month)) +
+  geom_bar(aes(fill = cc_cat), position = position_fill()) +
+  facet_grid(rows = ~housing_cat) +
+  ggtitle("E) Chief Complaint Category") +
+  xlab("") +
+  scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
+  scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
+  guides(fill = guide_legend(nrow = 6)) +
+  theme1
+```
+
+## ED Primary Diagnosis
+
+```{r hu_pdx_graph}
+hu_eddx_fig <- ggplot(hu_data, aes(x = vis_month)) +
+  geom_bar(aes(fill = ed_dx_cat), position = position_fill()) +
+  facet_grid(rows = ~housing_cat) +
+  ggtitle("F) Primary ED Discharge Diagnosis") +
+  xlab("") +
+  scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
+  scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
+  guides(fill = guide_legend(nrow = 6)) +
+  theme1
+```
+
+
+### Supplemental Figure 2 - Clinical
+
+```{r supfig2_clin, fig.height=10, fig.width=12}
+# quartz(type = "pdf", file = "pdfs/insurance.pdf", height = 8, w = 10)
+## HAVE TWO CC FIGS AS A PLACEHOLDER
+ggarrange(hu_ar_fig, hu_eddc_fig, hu_hospdc_fig, hu_triage_fig, hu_cc_fig, hu_eddx_fig)
+# dev.off()
+# # embed the font
+# embed_fonts("pdfs/insurance.pdf")
+```
+
+# Raw number of visits by month, day, and time of day
+
+```{r raw_count}
+count_month_all <- data %>% group_by(vis_month, housing_screen) %>%
+  summarise(n = n()) %>% mutate(housing_screen = forcats::fct_explicit_na(housing_screen))
+
+supfig3a <- count_month_all %>%
+  mutate(vis_month = factor(vis_month, levels = c("Jan", "Feb", "Mar", "Apr", "May"))) %>%
+  ggplot(aes(x = vis_month)) +
+  geom_point(aes(y = n, color = housing_screen)) +
+  ggtitle("A)") +
+  xlab("") +
+  ylab("Number of Visits") +
+  guides(color = guide_legend(title = "Experiencing Homelessness")) +
+  theme1
+
+# by day of the week
+count_day_all <- data %>% group_by(vis_weekday, housing_screen) %>%
+  summarise(n = n())
+
+supfig3b <- count_day_all %>%
+  mutate(vis_weekday = factor(vis_weekday, levels = c("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"))) %>%
+  ggplot(aes(x = vis_weekday)) +
+  geom_point(aes(y = n, color = housing_screen)) +
+  ggtitle("B)") +
+  xlab("") +
+  ylab("Number of Visits") +
+  guides(color = guide_legend(title = "Experiencing Homelessness")) +
+  theme1
+
+# by time of day
+count_time_all <- data %>% group_by(vis_hour, housing_screen) %>%
+  summarise(n = n()) %>% mutate(housing_screen = forcats::fct_explicit_na(housing_screen))
+
+supfig3c <- count_time_all %>%
+  mutate(vis_hour = factor(vis_hour, levels = c(as.character(seq(0, 23))))) %>%
+  ggplot(aes(x = vis_hour)) +
+  geom_point(aes(y = n, color = housing_screen)) +
+  ggtitle("C)") +
+  xlab("") +
+  ylab("Number of Visits") +
+  guides(color = guide_legend(title = "Experiencing Homelessness")) +
+  theme1
+```
+
+# Raw Prevelance by month, day, and time of day
+
+```{r raw_prev}
+# by month
+prev_month_all <- data %>% group_by(vis_month, housing_screen) %>%
+  summarise(n = n()) %>% mutate(prev = n / sum(n),
+                                housing_screen = forcats::fct_explicit_na(housing_screen))
+
+supfig3d <- prev_month_all %>%
+  mutate(vis_month = factor(vis_month, levels = c("Jan", "Feb", "Mar", "Apr", "May"))) %>%
+  ggplot(aes(x = vis_month)) +
+  geom_point(aes(y = prev, color = housing_screen)) +
+  ggtitle("D)") +
+  xlab("") +
+  scale_y_continuous(name = "Percentage of Visits", labels = scales::label_percent(), limits = c(0, 1)) +
+  guides(color = guide_legend(title = "Experiencing Homelessness")) +
+  theme1
+
+# by day of the week
+prev_day_all <- data %>% group_by(vis_weekday, housing_screen) %>%
+  summarise(n = n()) %>% mutate(prev = n / sum(n))
+
+supfig3e <- prev_day_all %>%
+  mutate(vis_weekday = factor(vis_weekday, levels = c("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"))) %>%
+  ggplot(aes(x = vis_weekday)) +
+  geom_point(aes(y = prev, color = housing_screen)) +
+  ggtitle("E)") +
+  xlab("") +
+  scale_y_continuous(name = "Percentage of Visits", labels = scales::label_percent(), limits = c(0, 1)) +
+  guides(color = guide_legend(title = "Experiencing Homelessness")) +
+  theme1
+
+# by time of day
+prev_time_all <- data %>% group_by(vis_hour, housing_screen) %>%
+  summarise(n = n()) %>% mutate(prev = n / sum(n),
+                                housing_screen = forcats::fct_explicit_na(housing_screen))
+supfig3f <- prev_time_all %>%
+  mutate(vis_hour = factor(vis_hour, levels = c(as.character(seq(0, 23))))) %>%
+  ggplot(aes(x = vis_hour)) +
+  geom_point(aes(y = prev, color = housing_screen)) +
+  ggtitle("F)") +
+  xlab("") +
+  scale_y_continuous(name = "Percentage of Visits", labels = scales::label_percent(), limits = c(0, 1)) +
+  guides(color = guide_legend(title = "Experiencing Homelessness")) +
+  theme1
+```
+
+# Supplemental Figure 3 - Raw Percentage and Absolute Counts
+
+```{r supfig3, fig.height=10, fig.width=12}
+ggarrange(supfig3a, supfig3b, supfig3c, 
+          supfig3d, supfig3e, supfig3f,
+          nrow = 2, ncol = 3,
+          common.legend = TRUE, legend = "bottom")
+```
+
+# Boostrap to get estimates of prevalence by month, day, and time of day
+
+```{r boot_prev, warning=FALSE, eval = FALSE}
+#### FIX WITH CATEGORIES ###
+
+# start by setting a seed
+set.seed(seed = 1111)
+
+# get baseline values
+prev_tot <- sum(data$housing_screen == "Yes", na.rm = TRUE) / nrow(data)
+prev_month <- data %>% group_by(vis_month, housing_screen) %>%
+  summarise(n = n()) %>% mutate(prev = n / sum(n)) %>%
+  filter(housing_screen == "Yes")
+prev_day <- data %>% group_by(vis_weekday, housing_screen) %>%
+  summarise(n = n()) %>% mutate(prev = n / sum(n)) %>%
+    filter(housing_screen == "Yes")
+prev_time <- data %>% group_by(vis_hour, housing_screen) %>%
+  summarise(n = n()) %>% mutate(prev = n / sum(n)) %>%
+    filter(housing_screen == "Yes")
+prev_daytime <- data %>% group_by(vis_weekday, vis_hour, housing_screen) %>%
+  summarise(n = n()) %>% mutate(prev = n / sum(n)) %>%
+    filter(housing_screen == "Yes")
+
+# make a dataframe with prevalence
+prev_df <- tibble(type = c("Overall", as.character(prev_month$vis_month), as.character(prev_day$vis_weekday), 
+                           as.character(prev_time$vis_hour), as.character(prev_daytime$vis_weekday)),
+                  time = c(rep("99", 37), as.character(prev_daytime$vis_hour)),
+                  Est = c(prev_tot, prev_month$prev, prev_day$prev, prev_time$prev, prev_daytime$prev),
+                  LB = NA,
+                  UB = NA,
+                  CI = NA)
+
+# make a function
+boot_prev <- function(data) {
+  # generate bootstrapped sample
+  resamp <- sample_n(data, size = nrow(data), replace = TRUE)
+  # pull out prevelances
+  prev_tot <- sum(resamp$housing_screen == "Yes", na.rm = TRUE) / nrow(resamp)
+  prev_month <- resamp %>% group_by(vis_month, housing_screen) %>% 
+    summarise(n = n()) %>% mutate(prev = n / sum(n)) %>%
+    filter(housing_screen == "Yes")
+  prev_day <- resamp %>% group_by(vis_weekday, housing_screen) %>%
+    summarise(n = n()) %>% mutate(prev = n / sum(n)) %>%
+    filter(housing_screen == "Yes")
+  prev_time <- resamp %>% group_by(vis_hour, housing_screen) %>%
+    summarise(n = n()) %>% mutate(prev = n / sum(n)) %>%
+    filter(housing_screen == "Yes")
+  prev_daytime <- resamp %>% group_by(vis_weekday, vis_hour, housing_screen) %>%
+    summarise(n = n()) %>% mutate(prev = n / sum(n)) %>%
+      filter(housing_screen == "Yes")
+  
+  # make final df
+  tibble(type = c("Overall", as.character(prev_month$vis_month), as.character(prev_day$vis_weekday), 
+                           as.character(prev_time$vis_hour), as.character(prev_daytime$vis_weekday)),
+                  time = c(rep("99", 37), as.character(prev_daytime$vis_hour)),
+                  boot_prev = c(prev_tot, prev_month$prev, prev_day$prev, prev_time$prev, prev_daytime$prev))
+}
+
+# initiate output
+out <- prev_df
+for(i in 1:1000) {
+  out <- left_join(out, boot_prev(data), by = c("type", "time"), suffix = c("", i))
+}
+
+# calculate LB and UB
+LBs <- out %>%
+  select(boot_prev:boot_prev1000) %>%
+  t() %>% as_tibble() %>%
+  map_dbl(~quantile(.x, 0.025, na.rm = TRUE))
+
+UBs <- out %>%
+  select(boot_prev:boot_prev1000) %>%
+  t() %>% as_tibble() %>%
+  map_dbl(~quantile(.x, 0.975, na.rm = TRUE))
+
+out <- out %>%
+  mutate(LB = LBs,
+         UB = UBs,
+         CI = paste0("(", round(LB, 3), ", ", round(UB, 3), ")"))
+out
+# will want to save this output so can only run this once
+fin_boot <- out %>% select(type:CI)
+
+# output bootstrapped values
+Save(fin_boot)
+```
+
+```{r boot_pull}
+Load(fin_boot)
+```
+
+## Prevalence by Month
+```{r month_prev}
+month_fig <- fin_boot %>%
+  filter(type %in% c("Jan", "Feb", "Mar", "Apr", "May")) %>%
+  mutate(type = factor(type, levels = c("Jan", "Feb", "Mar", "Apr", "May"))) %>%
+  ggplot(aes(x = type)) +
+  geom_errorbar(aes(ymin = LB, ymax = UB), width = 0.1) +
+  geom_point(aes(y = Est)) +
+  scale_y_continuous(name = "Percentage", labels = scales::label_percent(), limits = c(0, 0.125)) +
+  xlab("") +
+  ggtitle("A) Percentage by Month") +
+  theme1 +
+  theme(axis.text.x = element_text(angle = 0))
+```
+
+## Prevalence by Day
+```{r day_prev}
+day_fig <- fin_boot %>%
+  filter(type %in% c("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun") & time == "99") %>%
+  mutate(type = factor(type, levels = c("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"))) %>%
+  ggplot(aes(x = type)) +
+  geom_errorbar(aes(ymin = LB, ymax = UB), width = 0.1) +
+  geom_point(aes(y = Est)) +
+  scale_y_continuous(name = "Percentage", labels = scales::label_percent(), limits = c(0, 0.125)) +
+  xlab("") +
+  ggtitle("B) Percentage by Weekday") +
+  theme1 +
+  theme(axis.text.x = element_text(angle = 0))
+```
+
+## Prevalence by Time of Day
+```{r time_prev}
+time_fig <- fin_boot %>%
+  filter(type %in% as.character(seq(0, 23)) & time == "99") %>%
+  mutate(type = factor(type, levels = c(as.character(seq(0, 23))))) %>%
+  ggplot(aes(x = type)) +
+  geom_errorbar(aes(ymin = LB, ymax = UB), width = 0.1) +
+  geom_point(aes(y = Est)) +
+  ylim(0, 0.125) +
+  scale_y_continuous(name = "Percentage", labels = scales::label_percent(), limits = c(0, 0.125)) +
+  xlab("Hour") +
+  ggtitle("C) Percentage by Hour") +
+  theme1 +
+  theme(axis.text.x = element_text(angle = 0))
+```
+
+## Prevalence by Day and Time
+```{r all_prev}
+daytime_fig <- fin_boot %>%
+  filter(time != "99") %>%
+  mutate(type = factor(type, levels = c("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")),
+         time = factor(time, levels = c(as.character(seq(0, 23))))) %>%
+  ggplot(aes(x = type)) +
+  geom_tile(aes(y = time, fill = Est)) +
+  geom_text(aes(y = time, label = paste0(percent(Est, accuracy = 0.1), "\n", 
+                                         "(", percent(LB, accuracy = 0.1),
+                                         ", ", percent(UB, accuracy = 0.1), ")")), 
+            size = 2.75, color = "white") +
+  scale_fill_gradient(name = "Percentage", high = "#132B43", low = "#56B1F7") +
+  ylab("Hour") +
+  xlab("Day") +
+  ggtitle("D) Percentage by Weekday and Time") +
+  theme1 +
+  theme(axis.text.x = element_text(angle = 0))
+```
+
+## Figure 4 - Prevalence Figure
+
+```{r fig4, fig.height=10, fig.width=12}
+# quartz(type = "pdf", file = "pdfs/fig2.pdf", height = 10, w = 12)
+left_fig <- ggarrange(month_fig, day_fig, time_fig, nrow = 3)
+ggarrange(left_fig, daytime_fig, common.legend = TRUE, legend = "bottom")
+# dev.off()
+# # embed the font
+# embed_fonts("pdfs/fig2.pdf")
+```
+
+# Weather Data
+
+```{r pull_weather, eval =FALSE}
+# https://docs.ropensci.org/rnoaa/
+# my web token: Email:	daniel.e.sack@gmail.com
+# Token:	dGFZnaNPcYqMsRIhDhEMxzSCgvmWmZqr
+
+# pull nashville data (Jan 5 to May 16, 2023)
+
+# variable options
+# https://www1.ncdc.noaa.gov/pub/data/ghcn/daily/readme.txt
+
+# temperature data
+# https://www.ncdc.noaa.gov/cdo-web/datatools/findstation
+# max temp (TMAX - in tenths of degrees celcius)
+# min temp (TMIN - in tenths of degrees celcius)
+# average temp (TAVG in tenths of degrees celcius)
+# ADPT (average dew point temperature in tenths of degrees celcius)
+# RHAV = Average relative humidity for the day (percent)
+
+# Precipitation
+# PRCP (tenths of mm)
+# SNOW (snowfall in mm)
+
+# Wind
+# WSFG = Peak gust wind speed (tenths of meters per second)
+
+# vector of datatypes"WSFG"
+datatypes <- c("TMAX", "TMIN", "TAVG", "ADPT", "RHAV", "PRCP", "SNOW", "WSFG", "WT11")
+
+# What is available at the Nashville Station (CITY:US470016)
+# ncdc_locs(locationcategoryid='CITY', sortfield='name', sortorder='desc', limit = 1000)$data
+
+# Shelby Bottoms: GHCND:USC00408238
+# BNA: GHCND:USW00013897
+# BNA Berry Field: GHCND:USC00406403
+# Oak Hill: GHCND:US1TNDV0163
+# Belle Meade: GHCND:US1TNDV0157
+# Spring Hill South: GHCND:US1TNDV0117
+
+# for bna (b/c most complete) - has air temp (celcius tenths), precipitation (rain tenth of mm, snow in mm), and weather type 11 (high or damaging winds)
+wet_data_bna <- ncdc(datasetid = "GHCND", stationid = "GHCND:USW00013897", datatypeid = datatypes, startdate = "2023-01-05",
+             enddate = "2023-05-16", limit = 1000)$data %>% select(date:value) %>% pivot_wider(names_from = "datatype", values_from = "value") %>%
+  mutate(rain = PRCP / 100, # in cm
+         snow = SNOW / 10, # in cm
+         avg_temp = TAVG / 10, # in celcius
+         max_temp = TMAX / 10, # in celcius
+         min_temp = TMIN / 10) # in celcius
+Save(wet_data_bna)
+```
+
+```{r plot_weather}
+# graph values over time
+Load(wet_data_bna)
+# rain and snow
+ggplot(wet_data_bna) +
+  geom_point(aes(x = date, y = rain), color = "blue") +
+  geom_point(aes(x = date, y = snow), color = "grey50")
+
+# temp
+ggplot(wet_data_bna) +
+  geom_point(aes(x = date, y = min_temp), color = "gold") +
+  geom_point(aes(x = date, y = avg_temp), color = "orange") +
+  geom_point(aes(x = date, y = max_temp), color = "red")
+```
+
+# Weather by prevalence
+
+```{r temp_prev}
+# plot average temperature by prevalence
+
+# first calculate daily prevalence
+prev_date <- data %>% group_by(vis_date, housing_screen) %>%
+  summarise(n = n()) %>% mutate(prev = n / sum(n)) %>%
+    filter(housing_screen == "Yes")
+
+# combine with weather data
+weather <- left_join(wet_data_bna %>% mutate(vis_date = as_date(date)), prev_date %>% mutate(vis_date = as_date(vis_date)), by = "vis_date")
+```
+
+## Precipitation
+
+```{r precip_plot}
+rainfig <- ggplot(weather, aes(x = rain, y = prev)) +
+  geom_point() +
+  geom_smooth(method = "loess") +
+  ggtitle("A) Precipitation") +
+  ylab("Proportion") +
+  xlab("Rain (cm)") +
+  theme1 +
+  theme(axis.text.x = element_text(angle = 0))
+```
+
+## Minimum Temp
+
+```{r mint_plot}
+mintfig <- ggplot(weather, aes(x = min_temp, y = prev)) +
+  geom_point() +
+  geom_smooth(method = "loess") +
+  ggtitle("B) Minimum Temperature") +
+  ylab("Proportion") +
+  xlab("Temperature (Celcius)") +
+  theme1 +
+  theme(axis.text.x = element_text(angle = 0))
+```
+
+```{r avgt_plot, eval = FALSE}
+## Average Temp
+ggplot(weather, aes(x = avg_temp, y = prev)) +
+  geom_point() +
+  geom_smooth(method = "loess")
+```
+
+## Maximum Temp
+
+```{r maxt_plot}
+maxtfig <- ggplot(weather, aes(x = max_temp, y = prev)) +
+  geom_point() +
+  geom_smooth(method = "loess") +
+  ggtitle("C) Maximum Temperature") +
+  ylab("Proportion") +
+  xlab("Temperature (Celcius)") +
+  theme1 +
+  theme(axis.text.x = element_text(angle = 0))
+```
+
+### Supplemental Figure 4 - Weather
+
+```{r supfig4, fig.height=5, fig.width=12}
+ggarrange(rainfig, mintfig, maxtfig, nrow = 1)
+```
