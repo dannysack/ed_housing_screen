@@ -50,9 +50,8 @@ tbl_summary(data %>% mutate(vis_num = as.numeric(vis_num),
                             avg_prior_hosp_los = as.numeric(avg_prior_hosp_los)) %>%
               select(age_yr, age_cat, sex, lang_cat, race, eth_cat, insurance_cat,
                      meansOfArrival, hospDispoCat, edDispoCat, cc_cat, ed_dx_cat,
-                     pastQuestion:screenedQuestion, psychHist, 
-                     acuity_level_c, vis_num, vis_month:time_to_ed_dc, priorEdVisits:avg_prior_hosp_los),
-            by = housing_cat)
+                     pastQuestion:screenedQuestion, acuity_level_c),
+            by = housing_screen)
 ```
 
 ## Table 1 at participants' first visit
@@ -72,13 +71,13 @@ tbl_summary(data %>% mutate(vis_num = as.numeric(vis_num),
                      pastQuestion:screenedQuestion, psychHist, 
                      acuity_level_c, vis_num, vis_month:time_to_ed_dc, priorEdVisits:avg_prior_hosp_los) %>%
               filter(vis_num == 1),
-            by = housing_cat)
+            by = housing_screen)
 ```
 
 # Visits During the Study Period
 
 ```{r ed_visits}
-ggplot(data, aes(x = as.numeric(vis_num), y = housing_cat)) +
+ggplot(data, aes(x = as.numeric(vis_num), y = housing_screen)) +
   stat_halfeye(trim = TRUE) +
   geom_point(size = 0.5, alpha = 0.25, position = position_jitternudge(jitter.width = 0.1, jitter.height = 0.35, nudge.x = -0.05)) +
   ggtitle("ED Visits from Jan 1-May 16, 2023") +
@@ -90,7 +89,7 @@ ggplot(data, aes(x = as.numeric(vis_num), y = housing_cat)) +
 # Time to Room
 
 ```{r room_time}
-ggplot(data, aes(x = as.numeric(time_to_room)/60, y = housing_cat)) +
+ggplot(data, aes(x = as.numeric(time_to_room)/60, y = housing_screen)) +
   stat_halfeye(trim = TRUE) +
   geom_point(size = 0.5, alpha = 0.25, position = position_jitternudge(jitter.width = 0.1, jitter.height = 0.35, nudge.x = -0.1)) +
   coord_cartesian(xlim = c(0, 20)) +
@@ -103,7 +102,7 @@ ggplot(data, aes(x = as.numeric(time_to_room)/60, y = housing_cat)) +
 # Time to Provider
 
 ```{r md_time}
-ggplot(data, aes(x = as.numeric(time_to_md)/60, y = housing_cat)) +
+ggplot(data, aes(x = as.numeric(time_to_md)/60, y = housing_screen)) +
   stat_halfeye(trim = TRUE) +
   geom_point(size = 0.5, alpha = 0.25, position = position_jitternudge(jitter.width = 0.1, jitter.height = 0.35, nudge.x = -0.1)) +
   coord_cartesian(xlim = c(0, 480)) +
@@ -125,12 +124,16 @@ wilcox.test(data %>% filter(housing_cat == "Stable Housing") %>% pull(time_to_md
 # unstable v. houseless
 wilcox.test(data %>% filter(housing_cat == "Unstable Housing") %>% pull(time_to_md),
             data %>% filter(housing_cat == "Homeless") %>% pull(time_to_md))
+
+# screen
+wilcox.test(data %>% filter(housing_screen == "No") %>% pull(time_to_md),
+            data %>% filter(housing_screen == "Yes") %>% pull(time_to_md))
 ```
 
 # Time to ED Dispo
 
 ```{r ed_dispo_time}
-ggplot(data, aes(x = as.numeric(time_to_ed_dc)/60, y = housing_cat)) +
+ggplot(data, aes(x = as.numeric(time_to_ed_dc)/60, y = housing_screen)) +
   stat_halfeye(trim = TRUE) +
   geom_point(size = 0.5, alpha = 0.25, position = position_jitternudge(jitter.width = 0.1, jitter.height = 0.35, nudge.x = -0.1)) +
   coord_cartesian(xlim = c(0, 100)) +
@@ -152,12 +155,16 @@ wilcox.test(data %>% filter(housing_cat == "Stable Housing") %>% pull(time_to_ed
 # unstable v. houseless
 wilcox.test(data %>% filter(housing_cat == "Unstable Housing") %>% pull(time_to_ed_dc),
             data %>% filter(housing_cat == "Homeless") %>% pull(time_to_ed_dc))
+
+# screen
+wilcox.test(data %>% filter(housing_screen == "No") %>% pull(time_to_ed_dc),
+            data %>% filter(housing_screen == "Yes") %>% pull(time_to_ed_dc))
 ```
 
 # Time to Hosp d/c
 
 ```{r hospdc_time}
-ggplot(data, aes(x = as.numeric(time_to_hosp_dc)/60, y = housing_cat)) +
+ggplot(data, aes(x = as.numeric(time_to_hosp_dc)/60, y = housing_screen)) +
   stat_halfeye(trim = TRUE) +
   geom_point(size = 0.5, alpha = 0.25, position = position_jitternudge(jitter.width = 0.1, jitter.height = 0.35, nudge.x = -0.1)) +
   coord_cartesian(xlim = c(0, 480)) +
@@ -170,7 +177,7 @@ ggplot(data, aes(x = as.numeric(time_to_hosp_dc)/60, y = housing_cat)) +
 # Triage Score
 
 ```{r triage}
-ggplot(data, aes(x = acuity_level_c, y = housing_cat)) +
+ggplot(data, aes(x = acuity_level_c, y = housing_screen)) +
   stat_halfeye(trim = TRUE) +
   geom_point(size = 0.5, alpha = 0.25, position = position_jitternudge(jitter.width = 0.1, jitter.height = 0.35, nudge.x = -0.05)) +
   ggtitle("Triage Score") +
@@ -182,7 +189,7 @@ ggplot(data, aes(x = acuity_level_c, y = housing_cat)) +
 # Age
 
 ```{r age}
-ggplot(data, aes(x = age_yr, y = housing_cat)) +
+ggplot(data, aes(x = age_yr, y = housing_screen)) +
   stat_halfeye(trim = TRUE) +
   geom_point(size = 0.5, alpha = 0.25, position = position_jitternudge(jitter.width = 0.1, jitter.height = 0.35, nudge.x = -0.05)) +
   ggtitle("Age") +
@@ -196,110 +203,94 @@ ggplot(data, aes(x = age_yr, y = housing_cat)) +
 ## Age
 
 ```{r age_cat}
-age_fig <- ggplot(data, aes(x = vis_month)) +
+age_fig <- ggplot(data, aes(x = housing_screen)) +
   geom_bar(aes(fill = age_cat), position = position_fill()) +
-  facet_grid(rows = ~housing_cat) +
   ggtitle("A) Age") +
   xlab("") +
+  coord_flip() +
   scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
   scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
-  guides(fill = guide_legend(nrow = 2)) +
-  theme1
-
-## WITH PERCENTAGES
-# data %>%
-#   select(housing_cat, vis_month, age_cat) %>%
-#   group_by(housing_cat, vis_month, age_cat) %>%
-#   summarise(n = n()) %>%
-#   group_by(housing_cat, vis_month) %>%
-#   mutate(tot = sum(n)) %>%
-#   ungroup() %>%
-#   mutate(prop = n/tot) %>%
-#   ggplot(aes(x = vis_month, y = prop, fill = age_cat)) +
-#   geom_col() +
-#   geom_text(aes(label = percent(accuracy = 1, ifelse(prop > 0.0499, prop, NA))),
-#             position = position_fill(vjust = 0.5),
-#             size = 2.25) +
-#   facet_grid(rows = ~housing_cat) +
-#   ggtitle("A) Age") +
-#   xlab("") +
-#   scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
-#   scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
-#   guides(fill = guide_legend(nrow = 2)) +
-#   theme1
+  guides(fill = guide_legend(nrow = 3)) +
+  theme1 +
+  theme(axis.text.x = element_text(angle = 0))
 ```
 
 ## Sex
 
 ```{r sex_graph}
-sex_fig <- ggplot(data, aes(x = vis_month)) +
+sex_fig <- ggplot(data, aes(x = housing_screen)) +
   geom_bar(aes(fill = sex), position = position_fill()) +
-  facet_grid(rows = ~housing_cat) +
   ggtitle("B) Sex") +
   xlab("") +
+  coord_flip() +
   scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
   scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
-  guides(fill = guide_legend(nrow = 2)) +
-  theme1
+  guides(fill = guide_legend(nrow = 3)) +
+  theme1 +
+  theme(axis.text.x = element_text(angle = 0))
 ```
 
 
 ## Language
 
 ```{r lang_graph}
-lang_fig <- ggplot(data, aes(x = vis_month)) +
+lang_fig <- ggplot(data, aes(x = housing_screen)) +
   geom_bar(aes(fill = lang_cat), position = position_fill()) +
-  facet_grid(rows = ~housing_cat) +
   ggtitle("C) Language") +
   xlab("") +
+  coord_flip() +
   scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
   scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
-  guides(fill = guide_legend(nrow = 2)) +
-  theme1
+  guides(fill = guide_legend(nrow = 3)) +
+  theme1 +
+  theme(axis.text.x = element_text(angle = 0))
 ```
 
 ## Race
 
 ```{r race_graph}
-race_fig <- ggplot(data, aes(x = vis_month)) +
+race_fig <- ggplot(data, aes(x = housing_screen)) +
   geom_bar(aes(fill = race), position = position_fill()) +
-  facet_grid(rows = ~housing_cat) +
   ggtitle("D) Race") +
   xlab("") +
+  coord_flip() +
   scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
   scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
-  guides(fill = guide_legend(nrow = 5)) +
-  theme1
+  guides(fill = guide_legend(nrow = 3)) +
+  theme1 +
+  theme(axis.text.x = element_text(angle = 0))
 ```
 
 ## Ethnicity
 
 ```{r ethnicity_graph}
-eth_fig <- ggplot(data, aes(x = vis_month)) +
+eth_fig <- ggplot(data, aes(x = housing_screen)) +
   geom_bar(aes(fill = eth_cat), position = position_fill()) +
-  facet_grid(rows = ~housing_cat) +
   ggtitle("E) Ethnicity") +
   xlab("") +
+  coord_flip() +
   scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
   scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
-  guides(fill = guide_legend(nrow = 5)) +
-  theme1
+  guides(fill = guide_legend(nrow = 3)) +
+  theme1 +
+  theme(axis.text.x = element_text(angle = 0))
 ```
 
 ## Insurance
 ```{r insurance_graph}
-ins_fig <- ggplot(data, aes(x = vis_month)) +
+ins_fig <- ggplot(data, aes(x = housing_screen)) +
   geom_bar(aes(fill = insurance_cat), position = position_fill()) +
-  facet_grid(rows = ~housing_cat) +
   ggtitle("F) Insurance") +
   xlab("") +
+  coord_flip() +
   scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
   scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
-  guides(fill = guide_legend(nrow = 5)) +
-  theme1
+  guides(fill = guide_legend(nrow = 3)) +
+  theme1 +
+  theme(axis.text.x = element_text(angle = 0))
 ```
 
-### Figure 1 - Demographics
+### Supplemental Figure 1 - Demographics
 
 ```{r fig1_demo, fig.height=15, fig.width=18}
 # quartz(type = "pdf", file = "pdfs/insurance.pdf", height = 8, w = 10)
@@ -312,89 +303,95 @@ ggarrange(age_fig, sex_fig, lang_fig, race_fig, eth_fig, ins_fig)
 ## Arrival Method
 
 ```{r arrival_graph}
-ar_fig <- ggplot(data, aes(x = vis_month)) +
+ar_fig <- ggplot(data, aes(x = housing_screen)) +
   geom_bar(aes(fill = meansOfArrival), position = position_fill()) +
-  facet_grid(rows = ~housing_cat) +
   ggtitle("A) Arrival Method") +
   xlab("") +
+  coord_flip() +
   scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
   scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
-  guides(fill = guide_legend(nrow = 6)) +
-  theme1
+  guides(fill = guide_legend(nrow = 4)) +
+  theme1 +
+  theme(axis.text.x = element_text(angle = 0))
 ```
 
 ## ED Disposition
 
 ```{r eddispo_graph}
-eddc_fig <- ggplot(data, aes(x = vis_month)) +
+eddc_fig <- ggplot(data, aes(x = housing_screen)) +
   geom_bar(aes(fill = edDispoCat), position = position_fill()) +
-  facet_grid(rows = ~housing_cat) +
   ggtitle("B) ED Disposition") +
   xlab("") +
+  coord_flip() +
   scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
   scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
-  guides(fill = guide_legend(nrow = 6)) +
-  theme1
+  guides(fill = guide_legend(nrow = 4)) +
+  theme1 +
+  theme(axis.text.x = element_text(angle = 0))
 ```
 
 ## Hospital Discharge
 
 ```{r hospdc_graph}
-hospdc_fig <- ggplot(data, aes(x = vis_month)) +
+hospdc_fig <- ggplot(data, aes(x = housing_screen)) +
   geom_bar(aes(fill = hospDispoCat), position = position_fill()) +
-  facet_grid(rows = ~housing_cat) +
   ggtitle("C) Hospital Discharge Location") +
   xlab("") +
+  coord_flip() +
   scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
   scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
-  guides(fill = guide_legend(nrow = 6)) +
-  theme1
+  guides(fill = guide_legend(nrow = 4)) +
+  theme1 +
+  theme(axis.text.x = element_text(angle = 0))
 ```
 
 ## Acuity Level
 
 ```{r acuity_graph}
-triage_fig <- ggplot(data, aes(x = vis_month)) +
+triage_fig <- ggplot(data, aes(x = housing_screen)) +
   geom_bar(aes(fill = factor(acuity_level_c)), position = position_fill()) +
-  facet_grid(rows = ~housing_cat) +
   ggtitle("D) Intake Triage Scores") +
   xlab("") +
+  coord_flip() +
   scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
   scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
-  guides(fill = guide_legend(nrow = 6)) +
-  theme1
+  guides(fill = guide_legend(nrow = 4)) +
+  theme1 +
+  theme(axis.text.x = element_text(angle = 0))
 ```
 
 ## Chief Complaint
 
 ```{r cc_graph}
-cc_fig <- ggplot(data, aes(x = vis_month)) +
+cc_fig <- ggplot(data, aes(x = housing_screen)) +
   geom_bar(aes(fill = cc_cat), position = position_fill()) +
-  facet_grid(rows = ~housing_cat) +
   ggtitle("E) Chief Complaint Category") +
   xlab("") +
+  coord_flip() +
   scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
   scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
-  guides(fill = guide_legend(nrow = 6)) +
-  theme1
+  guides(fill = guide_legend(nrow = 4)) +
+  theme1 +
+  theme(axis.text.x = element_text(angle = 0))
 ```
 
 ## ED Primary Diagnosis
 
 ```{r pdx_graph}
-eddx_fig <- ggplot(data, aes(x = vis_month)) +
+eddx_fig <- ggplot(data, aes(x = housing_screen)) +
   geom_bar(aes(fill = ed_dx_cat), position = position_fill()) +
-  facet_grid(rows = ~housing_cat) +
   ggtitle("F) Primary ED Discharge Diagnosis") +
   xlab("") +
+  coord_flip() +
   scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
   scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
-  guides(fill = guide_legend(nrow = 6)) +
-  theme1
+  guides(fill = guide_legend(nrow = 4)) +
+  theme1 +
+  theme(axis.text.x = element_text(angle = 0))
 ```
 
 
-### Figure 2 - Clinical
+### Supplemental Figure 2 - Clinical
 
 ```{r fig2_clin, fig.height=15, fig.width=18}
 # quartz(type = "pdf", file = "pdfs/insurance.pdf", height = 8, w = 10)
@@ -415,7 +412,7 @@ hu_data <- data %>%
   filter(tot_vis > 2)
 ```
 
-## Table 2
+## High Utilizer Table
 
 ```{r gen_tab2}
 tbl_summary(hu_data %>% mutate(vis_num = as.numeric(vis_num),
@@ -427,9 +424,8 @@ tbl_summary(hu_data %>% mutate(vis_num = as.numeric(vis_num),
                             avg_prior_hosp_los = as.numeric(avg_prior_hosp_los)) %>%
               select(age_yr, age_cat, sex, lang_cat, race, eth_cat, insurance_cat,
                      meansOfArrival, hospDispoCat, edDispoCat, cc_cat, ed_dx_cat,
-                     pastQuestion:screenedQuestion, psychHist, 
-                     acuity_level_c, vis_num, vis_month:time_to_ed_dc, priorEdVisits:avg_prior_hosp_los),
-            by = housing_cat)
+                     pastQuestion:screenedQuestion, acuity_level_c),
+            by = housing_screen)
 ```
 
 ## Visits per patient
@@ -488,12 +484,14 @@ tot_pts_use <- high_patients %>%
            color = "black", alpha = 0, size = 0.75) +
   annotate(geom = "rect", xmin = 1.55, xmax = 2.45, ymin = 0, ymax = .121,
            color = "black", alpha = 0, size = 0.75) +
-  labs(title = "A) All VUMC ED Patients", subtitle = "") +
-  xlab("Experiencing Homelessness") +
+  labs(title = "A) All VUMC ED Patients") +
+  scale_x_discrete(name = "Housing Insecurity Screen", 
+                   labels = c("Negative", "Positive")) +
   scale_y_continuous(name = "Percentage", labels = label_percent()) +
   scale_fill_brewer(type = "qual", palette = "Paired") +
   guides(fill = guide_legend(nrow = 2)) +
-  theme1
+  theme1 +
+  theme(axis.text.x = element_text(angle = 0))
 
 tot_encounters_use <- high_encounters %>% 
   select(housing_screen, Visits) %>%
@@ -512,12 +510,26 @@ tot_encounters_use <- high_encounters %>%
            color = "black", alpha = 0, size = 0.75) +
   annotate(geom = "rect", xmin = 1.55, xmax = 2.45, ymin = 0, ymax = .405,
            color = "black", alpha = 0, size = 0.75) +
-  labs(title = "B) All VUMC ED Visits", subtitle = "") +
-  xlab("Experiencing Homelessness") +
-  scale_y_continuous(name = "", labels = label_percent()) +
+  labs(title = "B) All VUMC ED Visits") +
+  scale_x_discrete(name = "Housing Insecurity Screen", 
+                   labels = c("Negative", "Positive")) +
+  scale_y_continuous(name = "Percentage", labels = label_percent()) +
   scale_fill_brewer(type = "qual", palette = "Paired") +
   guides(fill = guide_legend(nrow = 2)) +
-  theme1
+  theme1 +
+  theme(axis.text.x = element_text(angle = 0))
+```
+## Figure 1 - ED Utilization Characteristics
+
+```{r fig3, fig.height=5, fig.width=8}
+# quartz(type = "pdf", file = "pdfs/fig1.pdf", height = 5, w = 8)
+ggarrange(tot_pts_use, tot_encounters_use, nrow = 1, common.legend = TRUE, legend = "bottom") +
+  annotate(geom = "rect", xmin = 0.505, xmax = 0.63, ymin = 0.01, ymax = 0.12, 
+           color = "black", alpha = 0, size = 0.75) +
+  annotate(geom = "text", label = "\"High Utilizers\"", x = 0.7, y = 0.065)
+# dev.off()
+# # embed the font
+# embed_fonts("pdfs/fig1.pdf")
 ```
 
 ## Repeat ED Visits
@@ -553,7 +565,7 @@ ggplot(repeat_vis, aes(x = as.numeric(days_bt_vis), y = housing_screen)) +
   stat_halfeye(trim = TRUE) +
   geom_point(size = 0.5, alpha = 0.25, position = position_jitternudge(jitter.width = 0.1, jitter.height = 0.35, nudge.x = -0.05)) +
   ggtitle("Time Between Consecutive Visits") +
-  ylab("Experiencing Homelessness") +
+  ylab("Positive Screen") +
   xlab("Days") +
   theme1
 
@@ -572,12 +584,14 @@ repvis_fig <- repeat_vis %>%
   geom_col() +
   geom_text(aes(label = percent(accuracy = 0.1, ifelse(prop > 0.0499, prop, NA))),
             position = position_fill(vjust = 0.5)) +
-  labs(title = "C) Next ED Visit", subtitle = "Among participants with 1+ ED visits") +
-  xlab("Experiencing Homelessness") +
-  scale_y_continuous(name = "", labels = label_percent()) +
+  labs(title = "A) Next ED Visit", subtitle = "Among participants with 1+ ED visits") +
+  scale_x_discrete(name = "Housing Insecurity Screen", 
+                   labels = c("Negative", "Positive")) +
+  scale_y_continuous(name = "Percentage", labels = label_percent()) +
   scale_fill_brewer(name = "Time", type = "qual", palette = "Paired", na.value = "grey") +
   guides(fill = guide_legend(nrow = 2)) +
-  theme1
+  theme1 +
+  theme(axis.text.x = element_text(angle = 0))
 ```
 ## Repeat ED Visits After Admission - TBD
 
@@ -611,7 +625,7 @@ ggplot(post_admit_vis, aes(x = as.numeric(days_bt_vis), y = housing_screen)) +
   stat_halfeye(trim = TRUE) +
   geom_point(size = 0.5, alpha = 0.25, position = position_jitternudge(jitter.width = 0.1, jitter.height = 0.35, nudge.x = -0.05)) +
   ggtitle("Time Between Admission and Next ED Visit") +
-  ylab("Experiencing Homelessness") +
+  ylab("Positive Screen") +
   xlab("Days") +
   theme1
 
@@ -631,218 +645,23 @@ repvisadm_fig <- post_admit_vis %>%
   geom_text(aes(label = percent(accuracy = 0.1, ifelse(prop > 0.0499, prop, NA))),
             position = position_fill(vjust = 0.5)) +
   labs(title = "D) Next ED Visit After Admission", subtitle = "Among participants with 1+ ED visits") +
-  xlab("Experiencing Homelessness") +
-  scale_y_continuous(name = "", labels = label_percent()) +
+  scale_x_discrete(name = "Housing Insecurity Screen", 
+                   labels = c("Negative", "Positive")) +
+  scale_y_continuous(name = "Percentage", labels = label_percent()) +
   scale_fill_brewer(name = "Time", type = "qual", palette = "Paired", na.value = "grey") +
   guides(fill = guide_legend(nrow = 2)) +
-  theme1
+  theme1 +
+  theme(axis.text.x = element_text(angle = 0))
 ```
+## Figure 2 - ED Utilization Characteristics
 
-## Figure 3 - ED Utilization Characteristics
-
-```{r fig3, fig.height=10, fig.width=8}
-top <- ggarrange(tot_pts_use, tot_encounters_use, nrow = 1, common.legend = TRUE, legend = "bottom")
-bot <- ggarrange(repvis_fig, repvisadm_fig, nrow = 1, common.legend = TRUE, legend = "bottom")
-# quartz(type = "pdf", file = "pdfs/fig1.pdf", height = 10, w = 8)
-ggarrange(top, bot, nrow = 2) +
-  annotate(geom = "rect", xmin = 0.505, xmax = 0.63, ymin = 0.505, ymax = 0.56, 
-           color = "black", alpha = 0, size = 0.75) +
-  annotate(geom = "text", label = "\"High Utilizers\"", x = 0.7, y = 0.535)
+```{r fig1b, fig.height=5, fig.width=8}
+# quartz(type = "pdf", file = "pdfs/fig2.pdf", height = 5, w = 8)
+ggarrange(repvis_fig, repvisadm_fig, nrow = 1, common.legend = TRUE, legend = "bottom")
 # dev.off()
 # # embed the font
-# embed_fonts("pdfs/fig1.pdf")
+# embed_fonts("pdfs/fig2.pdf")
 ```
-
-## Age
-
-```{r hu_age_cat}
-hu_age_fig <- ggplot(hu_data, aes(x = vis_month)) +
-  geom_bar(aes(fill = age_cat), position = position_fill()) +
-  facet_grid(rows = ~housing_cat) +
-  ggtitle("A) Age") +
-  xlab("") +
-  scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
-  scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
-  guides(fill = guide_legend(nrow = 2)) +
-  theme1
-```
-
-## Sex
-
-```{r hu_sex_graph}
-hu_sex_fig <- ggplot(hu_data, aes(x = vis_month)) +
-  geom_bar(aes(fill = sex), position = position_fill()) +
-  facet_grid(rows = ~housing_cat) +
-  ggtitle("B) Sex") +
-  xlab("") +
-  scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
-  scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
-  guides(fill = guide_legend(nrow = 2)) +
-  theme1
-```
-
-
-## Language
-
-```{r hu_lang_graph}
-hu_lang_fig <- ggplot(hu_data, aes(x = vis_month)) +
-  geom_bar(aes(fill = lang_cat), position = position_fill()) +
-  facet_grid(rows = ~housing_cat) +
-  ggtitle("C) Language") +
-  xlab("") +
-  scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
-  scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
-  guides(fill = guide_legend(nrow = 2)) +
-  theme1
-```
-
-## Race
-
-```{r hu_race_graph}
-hu_race_fig <- ggplot(hu_data, aes(x = vis_month)) +
-  geom_bar(aes(fill = race), position = position_fill()) +
-  facet_grid(rows = ~housing_cat) +
-  ggtitle("D) Race") +
-  xlab("") +
-  scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
-  scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
-  guides(fill = guide_legend(nrow = 5)) +
-  theme1
-```
-
-## Ethnicity
-
-```{r hu_ethnicity_graph}
-hu_eth_fig <- ggplot(hu_data, aes(x = vis_month)) +
-  geom_bar(aes(fill = eth_cat), position = position_fill()) +
-  facet_grid(rows = ~housing_cat) +
-  ggtitle("E) Ethnicity") +
-  xlab("") +
-  scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
-  scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
-  guides(fill = guide_legend(nrow = 5)) +
-  theme1
-```
-
-## Insurance
-```{r hu_insurance_graph}
-hu_ins_fig <- ggplot(hu_data, aes(x = vis_month)) +
-  geom_bar(aes(fill = insurance_cat), position = position_fill()) +
-  facet_grid(rows = ~housing_cat) +
-  ggtitle("F) Insurance") +
-  xlab("") +
-  scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
-  scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
-  guides(fill = guide_legend(nrow = 5)) +
-  theme1
-```
-
-### Supplemental Figure 1 - Demographics
-
-```{r supfig1_demo, fig.height=10, fig.width=12}
-# quartz(type = "pdf", file = "pdfs/insurance.pdf", height = 8, w = 10)
-ggarrange(hu_age_fig, hu_sex_fig, hu_lang_fig, hu_race_fig, hu_eth_fig, hu_ins_fig)
-# dev.off()
-# # embed the font
-# embed_fonts("pdfs/insurance.pdf")
-```
-
-## Arrival Method
-
-```{r hu_arrival_graph}
-hu_ar_fig <- ggplot(hu_data, aes(x = vis_month)) +
-  geom_bar(aes(fill = meansOfArrival), position = position_fill()) +
-  facet_grid(rows = ~housing_cat) +
-  ggtitle("A) Arrival Method") +
-  xlab("") +
-  scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
-  scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
-  guides(fill = guide_legend(nrow = 6)) +
-  theme1
-```
-
-## ED Disposition
-
-```{r hu_eddispo_graph}
-hu_eddc_fig <- ggplot(hu_data, aes(x = vis_month)) +
-  geom_bar(aes(fill = edDispoCat), position = position_fill()) +
-  facet_grid(rows = ~housing_cat) +
-  ggtitle("B) ED Disposition") +
-  xlab("") +
-  scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
-  scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
-  guides(fill = guide_legend(nrow = 6)) +
-  theme1
-```
-
-## Hospital Discharge
-
-```{r hu_hospdc_graph}
-hu_hospdc_fig <- ggplot(hu_data, aes(x = vis_month)) +
-  geom_bar(aes(fill = hospDispoCat), position = position_fill()) +
-  facet_grid(rows = ~housing_cat) +
-  ggtitle("C) Hospital Discharge Location") +
-  xlab("") +
-  scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
-  scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
-  guides(fill = guide_legend(nrow = 6)) +
-  theme1
-```
-
-## Acuity Level
-
-```{r hu_acuity_graph}
-hu_triage_fig <- ggplot(hu_data, aes(x = vis_month)) +
-  geom_bar(aes(fill = factor(acuity_level_c)), position = position_fill()) +
-  facet_grid(rows = ~housing_cat) +
-  ggtitle("D) Intake Triage Scores") +
-  xlab("") +
-  scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
-  scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
-  guides(fill = guide_legend(nrow = 6)) +
-  theme1
-```
-
-## Chief Complaint
-
-```{r hu_cc_graph}
-hu_cc_fig <- ggplot(hu_data, aes(x = vis_month)) +
-  geom_bar(aes(fill = cc_cat), position = position_fill()) +
-  facet_grid(rows = ~housing_cat) +
-  ggtitle("E) Chief Complaint Category") +
-  xlab("") +
-  scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
-  scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
-  guides(fill = guide_legend(nrow = 6)) +
-  theme1
-```
-
-## ED Primary Diagnosis
-
-```{r hu_pdx_graph}
-hu_eddx_fig <- ggplot(hu_data, aes(x = vis_month)) +
-  geom_bar(aes(fill = ed_dx_cat), position = position_fill()) +
-  facet_grid(rows = ~housing_cat) +
-  ggtitle("F) Primary ED Discharge Diagnosis") +
-  xlab("") +
-  scale_y_continuous(name = "Percentage", labels = scales::label_percent()) +
-  scale_fill_brewer(name = "", type = "qual", palette = "Paired", na.value = "grey") +
-  guides(fill = guide_legend(nrow = 6)) +
-  theme1
-```
-
-
-### Supplemental Figure 2 - Clinical
-
-```{r supfig2_clin, fig.height=10, fig.width=12}
-# quartz(type = "pdf", file = "pdfs/insurance.pdf", height = 8, w = 10)
-## HAVE TWO CC FIGS AS A PLACEHOLDER
-ggarrange(hu_ar_fig, hu_eddc_fig, hu_hospdc_fig, hu_triage_fig, hu_cc_fig, hu_eddx_fig)
-# dev.off()
-# # embed the font
-# embed_fonts("pdfs/insurance.pdf")
-```
-
 # Raw number of visits by month, day, and time of day
 
 ```{r raw_count}
@@ -1045,7 +864,7 @@ month_fig <- fin_boot %>%
   geom_point(aes(y = Est)) +
   scale_y_continuous(name = "Percentage", labels = scales::label_percent(), limits = c(0, 0.125)) +
   xlab("") +
-  ggtitle("A) Percentage by Month") +
+  ggtitle("A) Positive Screens by Month") +
   theme1 +
   theme(axis.text.x = element_text(angle = 0))
 ```
@@ -1058,9 +877,9 @@ day_fig <- fin_boot %>%
   ggplot(aes(x = type)) +
   geom_errorbar(aes(ymin = LB, ymax = UB), width = 0.1) +
   geom_point(aes(y = Est)) +
-  scale_y_continuous(name = "Percentage", labels = scales::label_percent(), limits = c(0, 0.125)) +
+  scale_y_continuous(name = "", labels = scales::label_percent(), limits = c(0, 0.125)) +
   xlab("") +
-  ggtitle("B) Percentage by Weekday") +
+  ggtitle("B) Positive Screens by Weekday") +
   theme1 +
   theme(axis.text.x = element_text(angle = 0))
 ```
@@ -1076,7 +895,7 @@ time_fig <- fin_boot %>%
   ylim(0, 0.125) +
   scale_y_continuous(name = "Percentage", labels = scales::label_percent(), limits = c(0, 0.125)) +
   xlab("Hour") +
-  ggtitle("C) Percentage by Hour") +
+  ggtitle("C) Positive Screens by Hour") +
   theme1 +
   theme(axis.text.x = element_text(angle = 0))
 ```
@@ -1096,20 +915,26 @@ daytime_fig <- fin_boot %>%
   scale_fill_gradient(name = "Percentage", high = "#132B43", low = "#56B1F7") +
   ylab("Hour") +
   xlab("Day") +
-  ggtitle("D) Percentage by Weekday and Time") +
+  ggtitle("D) Positive Screens by Weekday and Time") +
   theme1 +
   theme(axis.text.x = element_text(angle = 0))
 ```
 
-## Figure 4 - Prevalence Figure
+## Figure 3 - Prevalence Figure
 
-```{r fig4, fig.height=10, fig.width=12}
-# quartz(type = "pdf", file = "pdfs/fig2.pdf", height = 10, w = 12)
-left_fig <- ggarrange(month_fig, day_fig, time_fig, nrow = 3)
-ggarrange(left_fig, daytime_fig, common.legend = TRUE, legend = "bottom")
+```{r fig4, fig.height=8, fig.width=8}
+# quartz(type = "pdf", file = "pdfs/fig3.pdf", height = 8, w = 8)
+ggarrange(ggarrange(month_fig, day_fig, nrow = 1), time_fig, ncol = 1)
 # dev.off()
 # # embed the font
-# embed_fonts("pdfs/fig2.pdf")
+# embed_fonts("pdfs/fig3.pdf")
+```
+
+## Day-Time Figure
+
+```{r fig_daytime, fig.height=8, fig.width=8}
+# just to know, not to show
+daytime_fig
 ```
 
 # Weather Data
@@ -1238,7 +1063,7 @@ maxtfig <- ggplot(weather, aes(x = max_temp, y = prev)) +
   theme(axis.text.x = element_text(angle = 0))
 ```
 
-### Supplemental Figure 4 - Weather
+### Supplemental Weather Figure
 
 ```{r supfig4, fig.height=5, fig.width=12}
 ggarrange(rainfig, mintfig, maxtfig, nrow = 1)
