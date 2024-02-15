@@ -644,7 +644,7 @@ repvisadm_fig <- post_admit_vis %>%
   geom_col() +
   geom_text(aes(label = percent(accuracy = 0.1, ifelse(prop > 0.0499, prop, NA))),
             position = position_fill(vjust = 0.5)) +
-  labs(title = "D) Next ED Visit After Admission", subtitle = "Among participants with 1+ ED visits") +
+  labs(title = "B) Next ED Visit After Admission", subtitle = "Among participants with 1+ ED visits") +
   scale_x_discrete(name = "Housing Insecurity Screen", 
                    labels = c("Negative", "Positive")) +
   scale_y_continuous(name = "Percentage", labels = label_percent()) +
