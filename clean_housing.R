@@ -51,7 +51,7 @@ raw <- raw %>%
          housing_cat = ifelse(house_less == "Yes", "Homeless", housing_cat),
          housing_cat = ifelse(is.na(house_insecure) | is.na(house_less), "Missing", housing_cat),
          housing_cat = factor(housing_cat, levels = c("Stable Housing", "Unstable Housing", "Homeless", "Missing")),
-         housing_screen = ifelse(housing_cat == "Homeless", 1, 0), # housing screen
+         housing_screen = ifelse(housing_cat == "Homeless" | housing_cat == "Unstable Housing" , 1, 0), # housing screen
          housing_screen = ifelse(housing_cat == "Missing", 99, housing_screen),
          housing_screen = factor(housing_screen, levels = c(0, 1, 99), labels = c("No", "Yes", "Missing"))) %>%
   group_by(pat_mrn_id) %>%
